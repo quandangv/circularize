@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=2]
+[gd_scene load_steps=13 format=2]
 
 [ext_resource path="res://theme.tres" type="Theme" id=1]
 [ext_resource path="res://small_theme.tres" type="Theme" id=2]
@@ -13,14 +13,15 @@ var size = 10
 var point_alpha = 0
 var angle_count = 4
 var resolution = 2
+export var point_ratio:float = 1
+export var animated = false
 
 export var shape_color:Color = Color.white
 export var vertex_color:Color = Color.cyan
 
-func pingpong(value, low, high):
-  var size = high - low
-  var mod = fmod(value, size*2)
-  return low + mod if mod < size else high+size-mod
+func _process(delta):
+  if animated:
+    update()
 
 func _draw():
   var points = get_shape(size, power, angle_count, resolution)
@@ -28,8 +29,8 @@ func _draw():
   if point_alpha > 0:
     var color = vertex_color
     color.a = point_alpha
-    for point in points:
-      draw_circle(point, sqrt(size)*0.07, color)
+    for i in range(ceil(len(points)*point_ratio)):
+      draw_circle(points[i], sqrt(size)*0.1, color)
 
 func signed_pow(a, b):
   if a < 0:
@@ -76,19 +77,23 @@ script/source = "extends CanvasLayer
 
 onready var parent = get_parent()
 export(NodePath) var angle_label
+export(NodePath) var equation
 
 func _ready():
   angle_label = get_node(angle_label)
+  equation = get_node(equation)
 
 func sharpness_changed(value):
   value = clamp(value, -0.99999, 0.99999)
   parent.power = -log((1-value)/(value+3))*1.8204784532
   if parent.angle_count == 3:
     parent.power = max(parent.power, 1)
+  equation.set_stat(parent.angle_count, parent.power, parent.size)
   parent.update()
 
 func size_changed(value):
   parent.size = value
+  equation.set_stat(parent.angle_count, parent.power, parent.size)
   parent.update()
 
 func show_vertices_changed(value):
@@ -108,6 +113,7 @@ func angle_changed(angle):
     angle_label.text = \"square\"
   else:
     angle_label.text = \"???\"
+  equation.set_stat(parent.angle_count, parent.power, parent.size)
   parent.update()
 "
 
@@ -115,15 +121,28 @@ func angle_changed(angle):
 script/source = "extends Button
 
 export(NodePath) var anim
+export(NodePath) var tween
+export(NodePath) var shape
 export var pause_icon:Texture
 onready var resume_icon = icon
+const start_intro_time = 1
 
 func _ready():
   anim = get_node(anim)
+  shape = get_node(shape)
+  tween = get_node(tween)
 func _toggled(button_pressed):
   if button_pressed:
-    anim.play(\"animate\")
     icon = pause_icon
+    shape.animated = true
+    anim.play(\"intro\")
+    tween.interpolate_property(shape, \"shape_color\", null, Color.transparent, start_intro_time)
+    tween.interpolate_property(shape, \"point_ratio\", null, 0, start_intro_time)
+    tween.start()
+    yield(anim, \"animation_finished\")
+    shape.animated = false
+    if pressed:
+      anim.play(\"animate\")
   else:
     anim.stop()
     icon = resume_icon
@@ -143,10 +162,70 @@ tracks/0/keys = {
 "update": 0,
 "values": [ 0.0 ]
 }
+tracks/1/type = "value"
+tracks/1/path = NodePath("../../../..:point_ratio")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ 1.0 ]
+}
+tracks/2/type = "value"
+tracks/2/path = NodePath("../vertices:value")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ 0.0 ]
+}
+tracks/3/type = "value"
+tracks/3/path = NodePath("../../../..:shape_color")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Color( 0.847059, 0.937255, 1, 0.752941 ) ]
+}
+tracks/4/type = "value"
+tracks/4/path = NodePath("../../../equation:modulate")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Color( 1, 1, 1, 1 ) ]
+}
+tracks/5/type = "value"
+tracks/5/path = NodePath("../angles:value")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ 4.0 ]
+}
 
 [sub_resource type="Animation" id=5]
 resource_name = "animate"
-length = 4.0
+length = 16.0
 loop = true
 tracks/0/type = "value"
 tracks/0/path = NodePath(".:value")
@@ -155,10 +234,110 @@ tracks/0/loop_wrap = true
 tracks/0/imported = false
 tracks/0/enabled = true
 tracks/0/keys = {
-"times": PoolRealArray( 0, 1.8, 2.2 ),
-"transitions": PoolRealArray( 0.5, 2, 2 ),
+"times": PoolRealArray( 0, 1.8, 2.2, 4, 4.1, 5.9, 6.3, 8, 9.9, 10.3, 11.9, 12, 13.8, 14.2, 16 ),
+"transitions": PoolRealArray( 0.5, 2, 2, 1, 0.333333, 2, 3, 0.333333, 2, 3, 1, 0.5, 2, 2, 1 ),
 "update": 0,
-"values": [ -1.0, 0.99, 0.99 ]
+"values": [ -1.0, 0.99, 0.99, -1.0, -0.5, 0.99, 0.99, -0.5, 0.99, 0.99, -0.5, -1.0, 0.99, 0.99, -1.0 ]
+}
+tracks/1/type = "value"
+tracks/1/path = NodePath("../angles:value")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = {
+"times": PoolRealArray( 0, 4, 12, 16 ),
+"transitions": PoolRealArray( 1, 1, 1, 1 ),
+"update": 1,
+"values": [ 4.0, 3.0, 4.0, 3.0 ]
+}
+tracks/2/type = "value"
+tracks/2/path = NodePath("../../../..:shape_color")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/keys = {
+"times": PoolRealArray( 0, 4, 4.5, 11.5, 12, 16 ),
+"transitions": PoolRealArray( 200, 1, 1, 1, 1.19718e-05, 1 ),
+"update": 0,
+"values": [ Color( 0.847059, 0.937255, 1, 0.752941 ), Color( 0.847059, 0.937255, 1, 0 ), Color( 0.847059, 0.937255, 1, 0.752941 ), Color( 0.847059, 0.937255, 1, 0.752941 ), Color( 0.847059, 0.937255, 1, 0 ), Color( 0.847059, 0.937255, 1, 0.752941 ) ]
+}
+
+[sub_resource type="Animation" id=7]
+resource_name = "intro"
+length = 7.5
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:value")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 1, 6.5, 7.5 ),
+"transitions": PoolRealArray( 1, 1, 1 ),
+"update": 0,
+"values": [ 0.759, 0.759, -1.0 ]
+}
+tracks/1/type = "value"
+tracks/1/path = NodePath("../../../..:point_ratio")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = {
+"times": PoolRealArray( 1.9, 6 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ 0.0, 1.0 ]
+}
+tracks/2/type = "value"
+tracks/2/path = NodePath("../vertices:value")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/keys = {
+"times": PoolRealArray( 1.9, 6.5, 7.5 ),
+"transitions": PoolRealArray( 1, 0.420448, 1 ),
+"update": 0,
+"values": [ 1.0, 1.0, 0.0 ]
+}
+tracks/3/type = "value"
+tracks/3/path = NodePath("../../../..:shape_color")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/keys = {
+"times": PoolRealArray( 1.9, 6 ),
+"transitions": PoolRealArray( 2.46229, 1 ),
+"update": 0,
+"values": [ Color( 0.847059, 0.937255, 1, 0 ), Color( 0.847059, 0.937255, 1, 0.752941 ) ]
+}
+tracks/4/type = "value"
+tracks/4/path = NodePath("../../../equation:modulate")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/keys = {
+"times": PoolRealArray( 0, 0.7, 0.9, 1.9 ),
+"transitions": PoolRealArray( 1, 1, 1, 1 ),
+"update": 0,
+"values": [ Color( 1, 1, 1, 1 ), Color( 1, 1, 1, 0 ), Color( 1, 1, 1, 0 ), Color( 1, 1, 1, 1 ) ]
+}
+tracks/5/type = "value"
+tracks/5/path = NodePath("../angles:value")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/keys = {
+"times": PoolRealArray( 1 ),
+"transitions": PoolRealArray( 1 ),
+"update": 1,
+"values": [ 4.0 ]
 }
 
 [sub_resource type="GDScript" id=3]
@@ -177,6 +356,21 @@ func value_changed(_num):
   emit_signal(\"angle_changed\", value)
 "
 
+[sub_resource type="GDScript" id=8]
+script/source = "extends Label
+
+const superscripts = {'1':'¹', '2':'²', '3':'³', '4':'⁴', '5':'⁵', '6':'⁶', '7':'⁷', '8':'⁸', '9':'⁹', '0':'⁰', '-':'⁻', '.':'·'}
+func set_stat(angles, power, size):
+  if angles != 4:
+    text = \"Details at github.com/quandangv/circularize\"
+  else:
+    power = '%1.02f' % power
+    size = '%1.02f' % size
+    for key in superscripts:
+      power = power.replace(key, superscripts[key])
+    text = '|x|' + power + ' + |y|' + power + ' = ' + size + power
+"
+
 [node name="shape" type="Node2D"]
 z_index = 1
 script = SubResource( 1 )
@@ -191,6 +385,7 @@ zoom = Vector2( 0.1, 0.1 )
 layer = -1
 script = SubResource( 2 )
 angle_label = NodePath("box/sliders/Label5")
+equation = NodePath("equation")
 
 [node name="box" type="VBoxContainer" parent="ui"]
 anchor_top = 1.0
@@ -226,6 +421,8 @@ icon = ExtResource( 3 )
 flat = true
 script = SubResource( 6 )
 anim = NodePath("../sharpness/anim")
+tween = NodePath("../sharpness/tween")
+shape = NodePath("../../../..")
 pause_icon = ExtResource( 4 )
 
 [node name="sharpness" type="HSlider" parent="ui/box/sliders"]
@@ -242,6 +439,9 @@ step = 0.0
 [node name="anim" type="AnimationPlayer" parent="ui/box/sliders/sharpness"]
 anims/RESET = SubResource( 4 )
 anims/animate = SubResource( 5 )
+anims/intro = SubResource( 7 )
+
+[node name="tween" type="Tween" parent="ui/box/sliders/sharpness"]
 
 [node name="Label" type="Label" parent="ui/box/sliders"]
 margin_left = 191.0
@@ -328,6 +528,21 @@ margin_right = 300.0
 margin_bottom = 274.0
 text = "square"
 valign = 1
+
+[node name="equation" type="Label" parent="ui"]
+anchor_left = 1.0
+anchor_right = 1.0
+margin_left = -455.0
+margin_top = 20.0
+margin_right = -20.0
+margin_bottom = 39.0
+grow_horizontal = 0
+size_flags_horizontal = 11
+size_flags_vertical = 0
+theme = ExtResource( 1 )
+text = "|x|²·⁰⁰ + |y|²·⁰⁰ = 10.00²·⁰⁰"
+align = 2
+script = SubResource( 8 )
 
 [connection signal="value_changed" from="ui/box/sliders/sharpness" to="ui" method="sharpness_changed"]
 [connection signal="value_changed" from="ui/box/sliders/size" to="ui" method="size_changed"]
