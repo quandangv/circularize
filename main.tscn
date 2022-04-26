@@ -539,7 +539,7 @@ margin_bottom = 39.0
 grow_horizontal = 0
 size_flags_horizontal = 11
 size_flags_vertical = 0
-theme = ExtResource( 1 )
+theme = ExtResource( 2 )
 text = "|x|²·⁰⁰ + |y|²·⁰⁰ = 10.00²·⁰⁰"
 align = 2
 script = SubResource( 8 )
