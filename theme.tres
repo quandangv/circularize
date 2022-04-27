@@ -1,6 +1,8 @@
-[gd_resource type="Theme" load_steps=13 format=2]
+[gd_resource type="Theme" load_steps=15 format=2]
 
 [ext_resource path="res://fonts/MenuFont.tres" type="DynamicFont" id=1]
+[ext_resource path="res://icons/grabber_highlight.svg" type="Texture" id=2]
+[ext_resource path="res://icons/grabber.svg" type="Texture" id=3]
 
 [sub_resource type="StyleBoxFlat" id=1]
 content_margin_left = 8.0
@@ -83,7 +85,7 @@ width = 1
 [sub_resource type="StyleBoxFlat" id=11]
 content_margin_left = 0.0
 content_margin_right = 0.0
-bg_color = Color( 0, 0.717647, 1, 0.501961 )
+bg_color = Color( 1, 1, 1, 0.501961 )
 border_width_left = 8
 border_width_right = 8
 border_color = Color( 1, 1, 1, 0 )
@@ -91,11 +93,13 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
+expand_margin_left = 4.0
+expand_margin_right = 4.0
 
 [sub_resource type="StyleBoxFlat" id=12]
 content_margin_left = 0.0
 content_margin_right = 0.0
-bg_color = Color( 0, 0.717647, 1, 1 )
+bg_color = Color( 1, 1, 1, 1 )
 border_width_left = 8
 border_width_right = 8
 border_color = Color( 0, 0, 0, 0 )
@@ -103,20 +107,26 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
+expand_margin_left = 4.0
+expand_margin_right = 4.0
 
 [sub_resource type="StyleBoxFlat" id=10]
-bg_color = Color( 0, 0.717647, 1, 0.0784314 )
+bg_color = Color( 1, 1, 1, 0.0784314 )
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color( 0, 0.717647, 1, 0.721569 )
+border_color = Color( 1, 1, 1, 0.721569 )
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
+expand_margin_left = 4.0
+expand_margin_right = 4.0
 expand_margin_top = 8.0
 expand_margin_bottom = 8.0
+shadow_color = Color( 0, 0, 0, 0.25098 )
+shadow_size = 3
 
 [sub_resource type="StyleBoxFlat" id=8]
 content_margin_left = 8.0
@@ -156,6 +166,8 @@ CheckButton/icons/on = SubResource( 7 )
 CheckButton/icons/on_disabled = SubResource( 7 )
 CheckButton/styles/normal = SubResource( 4 )
 CheckButton/styles/pressed = SubResource( 5 )
+HSlider/icons/grabber = ExtResource( 3 )
+HSlider/icons/grabber_highlight = ExtResource( 2 )
 HSlider/styles/grabber_area = SubResource( 11 )
 HSlider/styles/grabber_area_highlight = SubResource( 12 )
 HSlider/styles/slider = SubResource( 10 )
