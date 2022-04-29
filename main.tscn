@@ -8,7 +8,7 @@
 [sub_resource type="GDScript" id=1]
 script/source = "extends Node2D
 
-var power = 2
+onready var sharpness = ShapeLib.power2sharpness(2)
 var size = 10
 var point_alpha = 0
 var angle_count = 4
@@ -24,52 +24,13 @@ func _process(delta):
     update()
 
 func _draw():
-  var points = get_shape(size, power, angle_count, resolution)
+  var points = ShapeLib.get_shape(size, sharpness, angle_count, resolution)
   draw_colored_polygon(points, shape_color, PoolVector2Array(), null, null, true)
   if point_alpha > 0:
     var color = vertex_color
     color.a = point_alpha
     for i in range(ceil(len(points)*point_ratio)):
       draw_circle(points[i], sqrt(size)*0.1, color)
-
-func signed_pow(a, b):
-  if a < 0:
-    return -pow(-a, b)
-  return pow(a, b)
-
-func smooth_step(x:float, power:float):
-  var constant = 1
-  if power < 2:
-    power = 4/power
-    x+=1
-    constant = 0
-  return signed_pow(2*asin(fmod(x, 2) - 1)/PI, sqrt(power)/2) + floor(x/2)*2 + constant
-
-const sin30 = sqrt(3)/2
-func get_shape(size:float, power:float, side_count:int, resolution:float=1):  
-  var step_count = max(ceil(size*resolution/2/sqrt(side_count))*2, 1)*side_count
-  var step = side_count*2/step_count
-  var points:PoolVector2Array
-  match side_count:
-    3:
-      power = 1+(power-1)*0.73
-      for i in range(step_count):
-        var theta = smooth_step(i*step, power)/side_count*PI
-        var floored = theta - fmod(theta, PI*2/3) - PI*2/3
-        theta = theta - fmod(theta, PI*2/3)/2 + PI/6
-        var c = cos(theta)
-        var s = sin(theta) * sin30
-        var coord1 = max(c, 0)
-        var coord2 = max(-c/2 - s, 0)
-        var coord3 = max(-c/2 + s, 0)
-        var length = size/pow(pow(abs(coord1), power) + pow(abs(coord2), power) + pow(abs(coord3), power), 1/power)
-        points.append(Vector2(length, 0).rotated(theta) + Vector2(size*2/3, 0).rotated(floored))
-    4:
-      for i in range(step_count):
-        var theta = smooth_step(i*step, power)/side_count*PI
-        var length = size/pow(pow(abs(sin(theta)), power) + pow(abs(cos(theta)), power), 1/power)
-        points.append(Vector2(length, 0).rotated(theta))
-  return points
 "
 
 [sub_resource type="GDScript" id=2]
@@ -78,22 +39,23 @@ script/source = "extends CanvasLayer
 onready var parent = get_parent()
 export(NodePath) var angle_label
 export(NodePath) var equation
+export(NodePath) var sharpness_control
 
 func _ready():
   angle_label = get_node(angle_label)
   equation = get_node(equation)
+  sharpness_control = get_node(sharpness_control)
+  sharpness_control.value = ShapeLib.power2sharpness(2)
 
 func sharpness_changed(value):
-  value = clamp(value, -0.99999, 0.99999)
-  parent.power = -log((1-value)/(value+3))*1.8204784532
-  if parent.angle_count == 3:
-    parent.power = max(parent.power, 1)
-  equation.set_stat(parent.angle_count, parent.power, parent.size)
+  value = clamp(value, 0, 0.99999)
+  parent.sharpness = value
+  equation.set_stat(parent.angle_count, ShapeLib.sharpness2power(parent.sharpness), parent.size)
   parent.update()
 
 func size_changed(value):
   parent.size = value
-  equation.set_stat(parent.angle_count, parent.power, parent.size)
+  equation.set_stat(parent.angle_count, ShapeLib.sharpness2power(parent.sharpness), parent.size)
   parent.update()
 
 func show_vertices_changed(value):
@@ -107,13 +69,12 @@ func resolution_changed(value):
 func angle_changed(angle):
   parent.angle_count = angle
   if angle == 3:
-    parent.power = max(parent.power, 1)
     angle_label.text = \"triangle\"
   elif angle == 4:
     angle_label.text = \"square\"
   else:
     angle_label.text = \"???\"
-  equation.set_stat(parent.angle_count, parent.power, parent.size)
+  equation.set_stat(parent.angle_count, ShapeLib.sharpness2power(parent.sharpness), parent.size)
   parent.update()
 "
 
@@ -234,10 +195,10 @@ tracks/0/loop_wrap = true
 tracks/0/imported = false
 tracks/0/enabled = true
 tracks/0/keys = {
-"times": PoolRealArray( 0, 1.8, 2.2, 4, 4.1, 5.9, 6.3, 8, 9.9, 10.3, 11.9, 12, 13.8, 14.2, 16 ),
-"transitions": PoolRealArray( 0.5, 2, 2, 1, 0.333333, 2, 3, 0.333333, 2, 3, 1, 0.5, 2, 2, 1 ),
+"times": PoolRealArray( 0, 1.8, 2.2, 4, 5.9, 6.3, 8, 9.9, 10.3, 12, 13.8, 14.2, 16 ),
+"transitions": PoolRealArray( 0.5, 2, 2, 1, 2, 3, 0.333333, 2, 3, 0.5, 2, 2, 1 ),
 "update": 0,
-"values": [ -1.0, 0.99, 0.99, -1.0, -0.5, 0.99, 0.99, -0.5, 0.99, 0.99, -0.5, -1.0, 0.99, 0.99, -1.0 ]
+"values": [ 0.0, 0.99, 0.99, 0.0, 0.99, 0.99, 0.0, 0.99, 0.99, 0.0, 0.99, 0.99, 0.0 ]
 }
 tracks/1/type = "value"
 tracks/1/path = NodePath("../angles:value")
@@ -277,7 +238,7 @@ tracks/0/keys = {
 "times": PoolRealArray( 1, 6.5, 7.5 ),
 "transitions": PoolRealArray( 1, 1, 1 ),
 "update": 0,
-"values": [ 0.759, 0.759, -1.0 ]
+"values": [ 0.76, 0.76, 0.0 ]
 }
 tracks/1/type = "value"
 tracks/1/path = NodePath("../../../..:point_ratio")
@@ -386,6 +347,7 @@ layer = -1
 script = SubResource( 2 )
 angle_label = NodePath("box/sliders/Label5")
 equation = NodePath("equation")
+sharpness_control = NodePath("box/sliders/sharpness")
 
 [node name="box" type="VBoxContainer" parent="ui"]
 anchor_top = 1.0
@@ -432,7 +394,6 @@ margin_bottom = 99.0
 rect_min_size = Vector2( 0, 30 )
 size_flags_horizontal = 3
 size_flags_vertical = 3
-min_value = -1.0
 max_value = 1.0
 step = 0.0
 

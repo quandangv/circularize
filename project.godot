@@ -14,6 +14,10 @@ config/name="circularize"
 run/main_scene="res://main.tscn"
 config/icon="res://icon.svg"
 
+[autoload]
+
+ShapeLib="*res://shape_lib.gd"
+
 [display]
 
 window/size/width=1080
